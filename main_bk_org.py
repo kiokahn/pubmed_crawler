@@ -60,28 +60,13 @@ class Crawl(QThread):
                 self.textBrowser_value.emit("Please Check Internet Connection! Retrying!")
                 self.chem_json_list, self.chem_list, self.name_dict = self.process_pubmed_chem_info(self.keyword)
         else:
-            '''
             try:
                 self.chem_json_list, self.chem_list, self.name_dict, self.title_list, self.abstract_list = \
-                    self.process_pubmed_chem_abstract_info(self.keyword)
-            except TimeoutError:
-                #self.textBrowser_value.emit("Please Check Internet Connection! Retrying!")
-                print("Please Check Internet Connection! Retrying!")
-                self.chem_json_list, self.chem_list, self.name_dict, self.title_list, self.abstract_list = \
-                    self.process_pubmed_chem_abstract_info(self.keyword)
-            '''
-            try:
-                self.chem_json_list, self.chem_list, self.name_dict, self.title_list, \
-                    self.journal_list, self.year_list, self.volume_list, self.issue_list, self.authors_list, self.citation_list,\
-                        self.abstract_list = \
                     self.process_pubmed_chem_abstract_info(self.keyword)
             except TimeoutError:
                 self.textBrowser_value.emit("Please Check Internet Connection! Retrying!")
-                self.chem_json_list, self.chem_list, self.name_dict, self.title_list, \
-                   self.journal_list, self.year_list, self.volume_list, self.issue_list, self.authors_list, self.citation_list, \
-                       self.abstract_list = \
+                self.chem_json_list, self.chem_list, self.name_dict, self.title_list, self.abstract_list = \
                     self.process_pubmed_chem_abstract_info(self.keyword)
-
 
         if self.chem_json_list:
             self.chem_matrix = self.process_matrix()
@@ -137,14 +122,6 @@ class Crawl(QThread):
 
         if self.checkBox:
             header.append("Title")
-            #added by kiokahn - start
-            header.append("Journal")
-            header.append("Year")
-            header.append("Volume")
-            header.append("Issue")
-            header.append("Authors")
-            header.append("Citation")
-            #added by kiokahn - end
             header.append("Abstract")
 
         ofile = open(outfile, 'w', encoding="utf8")
@@ -157,24 +134,8 @@ class Crawl(QThread):
             contents = [compound_id, name, frequency]
             if self.checkBox:
                 title = self.title_list[i]
-                #added by kiokahn - start
-                journal = self.journal_list[i]
-                year = self.year_list[i]
-                volume = self.volume_list[i]
-                issue = self.issue_list[i]
-                authors = self.authors_list[i]
-                citation = self.citation_list [i]
-                #added by kiokahn - end
                 abstract = self.abstract_list[i]
                 contents.append(title)
-                #added by kiokahn - start
-                contents.append(journal)
-                contents.append(year)
-                contents.append(volume)
-                contents.append(issue)
-                contents.append(authors)
-                contents.append(citation)
-                #added by kiokahn - end
                 contents.append(abstract)
 
             ofile.write("\n" + ", ".join(contents))
@@ -246,14 +207,6 @@ class Crawl(QThread):
                 if key not in chem_list:
                     chem_list.append(key)
                     title_list.append(chem_json["title"])
-                    #added by kiokahn - start
-                    journal_list.append(chem_json["journal"])
-                    year_list.append(chem_json["year"])
-                    volume_list.append(chem_json["volume"])
-                    issue_list.append(chem_json["issue"])
-                    authors_list.append(chem_json["authors"])
-                    citation_list.append(chem_json["citation"])
-                    #added by kiokahn - end
                     abstract_list.append(chem_json["abstract"])
                     name_dict[key] = chem_json[key]["substance_name"]
 
@@ -307,59 +260,7 @@ class Crawl(QThread):
                     title = title.replace("\t", " ")
                     title = title.replace("\n", " ")
 
-               #added by kiokahn - start
-                journal = article.journal
-                if not journal:
-                    continue
-                elif "\t" in journal or "\n" in journal:
-                    journal = journal.replace("\t", " ")
-                    journal = journal.replace("\n", " ")
-                    
-                year = article.year
-                if not year:
-                    continue
-                elif "\t" in year or "\n" in year:
-                    year = year.replace("\t", " ")
-                    year = year.replace("\n", " ")
-
-                volume = article.volume
-                if not volume:
-                    continue
-                elif "\t" in volume or "\n" in volume:
-                    volume = volume.replace("\t", " ")
-                    volume = volume.replace("\n", " ")
-
-                issue = article.issue
-                if not issue:
-                    continue
-                elif "\t" in issue or "\n" in issue:
-                    issue = issue.replace("\t", " ")
-                    issue = issue.replace("\n", " ")
-
-                authors = article.authors
-                if not authors:
-                    continue
-                elif "\t" in authors or "\n" in authors:
-                    authors = authors.replace("\t", " ")
-                    authors = authors.replace("\n", " ")
-
-                citation = article.citation
-                if not citation:
-                    continue
-                elif "\t" in citation or "\n" in citation:
-                    citation = citation.replace("\t", " ")
-                    citation = citation.replace("\n", " ")
-                #added by kiokahn - end
-                
                 chemical["title"] = title
-                #added by kiokahn - start
-                chemical["journal"] = journal
-                chemical["year"] = year
-                chemical["volume"] = volume
-                chemical["issue"] = issue
-                chemical["authors"] = authors
-                chemical["citation"] = citation
-                #added by kiokahn - end
                 chemical["abstract"] = abstract
 
                 json_dicts.append(chemical)

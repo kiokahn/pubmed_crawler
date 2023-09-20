@@ -1,11 +1,4 @@
 """
-PubMed Chemicals and Paper Crawler
-with GUI
-Byunghyun Ban
-https://github.com/needleworm
-
-
-
 #### PubMedFetcher Defination ####
 https://pypi.org/project/metapub/
 
@@ -16,21 +9,14 @@ print(article.journal, article.year, article.volume, article.issue)
 print(article.authors)
 print(article.citation)
 """
+
 import sys
-from PyQt5 import uic
-from PyQt5 import QtWidgets as Q
-from PyQt5.QtCore import *
 from metapub import PubMedFetcher
 
-ui_class = uic.loadUiType("resources/crawler_gui.ui")
 
-
-class Crawl(QThread):
-    progress_bar_value = pyqtSignal(int)
-    textBrowser_value = pyqtSignal(str)
+class PubMedCrawl:
 
     def __init__(self, keyword, retmax, checkBox):
-        QThread.__init__(self)
         self.keyword = keyword
         self.retmax = retmax
         self.checkBox = checkBox
@@ -57,7 +43,8 @@ class Crawl(QThread):
             try:
                 self.chem_json_list, self.chem_list, self.name_dict = self.process_pubmed_chem_info(self.keyword)
             except TimeoutError:
-                self.textBrowser_value.emit("Please Check Internet Connection! Retrying!")
+                #self.textBrowser_value.emit("Please Check Internet Connection! Retrying!")
+                print("Please Check Internet Connection! Retrying!")
                 self.chem_json_list, self.chem_list, self.name_dict = self.process_pubmed_chem_info(self.keyword)
         else:
             '''
@@ -76,18 +63,19 @@ class Crawl(QThread):
                         self.abstract_list = \
                     self.process_pubmed_chem_abstract_info(self.keyword)
             except TimeoutError:
-                self.textBrowser_value.emit("Please Check Internet Connection! Retrying!")
+                #self.textBrowser_value.emit("Please Check Internet Connection! Retrying!")
+                print("Please Check Internet Connection! Retrying!")
                 self.chem_json_list, self.chem_list, self.name_dict, self.title_list, \
                    self.journal_list, self.year_list, self.volume_list, self.issue_list, self.authors_list, self.citation_list, \
                        self.abstract_list = \
                     self.process_pubmed_chem_abstract_info(self.keyword)
-
-
+            
         if self.chem_json_list:
             self.chem_matrix = self.process_matrix()
             self.make_csv_single_chem()
         else:
-            self.textBrowser_value.emit("No Result Found!")
+            #self.textBrowser_value.emit("No Result Found!")
+            print("No Result Found!")
 
 
     def crawl_chem_json(self, keyword, retmax=2000):#300):
@@ -95,25 +83,32 @@ class Crawl(QThread):
 
         pmids = fetch.pmids_for_query(keyword, retmax=retmax)
 
-        self.textBrowser_value.emit("Scanning Iteration : " + str(retmax))
+        #self.textBrowser_value.emit("Scanning Iteration : " + str(retmax))
+        print("Scanning Iteration : " + str(retmax))
         self.textBrowser_value.emit("Expected Running Time : " + str(retmax * 2) + " seconds.")
+        print("Expected Running Time : " + str(retmax * 2) + " seconds.")
 
-        self.textBrowser_value.emit("PMID Scan Done!")
-        self.progress_bar_value.emit(self.count)
+        #self.textBrowser_value.emit("PMID Scan Done!")
+        print("PMID Scan Done!")
+        #self.progress_bar_value.emit(self.count)
+        print(self.count)
 
         json_dicts = []
-        self.textBrowser_value.emit("Crawling Paper Info..")
+        #self.textBrowser_value.emit("Crawling Paper Info..")
+        print("Crawling Paper Info..")
 
         for i in range(len(pmids)):
             pmid = pmids[i]
             try:
                 if int(i / len(pmids) * 100) > self.count:
                     self.count = int(i / len(pmids) * 100)
-                    self.progress_bar_value.emit(self.count)
+                    #self.progress_bar_value.emit(self.count)
+                    print(self.count)
                 try:
                     article = fetch.article_by_pmid(pmid)
                 except:
-                    self.textBrowser_value.emit("Error reading " + str(pmid))
+                    #self.textBrowser_value.emit("Error reading " + str(pmid))
+                    print("Error reading " + str(pmid))
                     continue
 
                 chemical = article.chemicals
@@ -124,7 +119,8 @@ class Crawl(QThread):
             except:
                 continue
 
-        self.textBrowser_value.emit("Progress Done!")
+        #self.textBrowser_value.emit("Progress Done!")
+        print("Progress Done!")
         return json_dicts
 
     def make_csv_single_chem(self, outfile=None):
@@ -137,6 +133,7 @@ class Crawl(QThread):
 
         if self.checkBox:
             header.append("Title")
+
             #added by kiokahn - start
             header.append("Journal")
             header.append("Year")
@@ -145,6 +142,7 @@ class Crawl(QThread):
             header.append("Authors")
             header.append("Citation")
             #added by kiokahn - end
+
             header.append("Abstract")
 
         ofile = open(outfile, 'w', encoding="utf8")
@@ -157,16 +155,19 @@ class Crawl(QThread):
             contents = [compound_id, name, frequency]
             if self.checkBox:
                 title = self.title_list[i]
+                
                 #added by kiokahn - start
                 journal = self.journal_list[i]
                 year = self.year_list[i]
                 volume = self.volume_list[i]
                 issue = self.issue_list[i]
                 authors = self.authors_list[i]
-                citation = self.citation_list [i]
+                citation = self.citation_list[i]
                 #added by kiokahn - end
+                
                 abstract = self.abstract_list[i]
                 contents.append(title)
+                
                 #added by kiokahn - start
                 contents.append(journal)
                 contents.append(year)
@@ -175,15 +176,19 @@ class Crawl(QThread):
                 contents.append(authors)
                 contents.append(citation)
                 #added by kiokahn - end
+                
                 contents.append(abstract)
 
             ofile.write("\n" + ", ".join(contents))
 
         ofile.close()
 
-        self.textBrowser_value.emit("Result Saved as a CSV File")
-        self.textBrowser_value.emit("Filename : " + outfile)
-        self.progress_bar_value.emit(100)
+        #self.textBrowser_value.emit("Result Saved as a CSV File")
+        print("Result Saved as a CSV File")
+        #self.textBrowser_value.emit("Filename : " + outfile)
+        print("Filename : " + outfile)
+        #self.progress_bar_value.emit(100)
+        print(100)
 
     def process_matrix(self):
         num_chem = len(self.chem_list)
@@ -195,7 +200,10 @@ class Crawl(QThread):
             IDXs = []
 
             for el in keys:
-                if el in "title abstract":
+                #added by kiokahn - start
+                #if el in "title abstract":
+                if el in "title journal year volume issue authors citation abstract":
+                    #added by kiokahn - end
                     continue
                 idx = self.chem_list.index(el)
                 matrix[idx][idx] += 1
@@ -205,7 +213,8 @@ class Crawl(QThread):
 
     def process_pubmed_chem_info(self, keyword):
         chem_json_list = self.crawl_chem_json(keyword, retmax=self.retmax)
-        self.textBrowser_value.emit("Crawling Done! Processing Output Files...")
+        #self.textBrowser_value.emit("Crawling Done! Processing Output Files...")
+        print("Crawling Done! Processing Output Files...")
         chem_list = []
         name_dict = {}
 
@@ -215,14 +224,16 @@ class Crawl(QThread):
                     chem_list.append(chem)
                     name_dict[chem] = chem_json[chem]["substance_name"]
 
-        self.textBrowser_value.emit("Total Number of Crawled Papers : " + str(len(chem_json_list)))
-        self.textBrowser_value.emit("Total Number of Chemicals : " + str(len(chem_list)))
+        #self.textBrowser_value.emit("Total Number of Crawled Papers : " + str(len(chem_json_list)))
+        print("Total Number of Crawled Papers : " + str(len(chem_json_list)))
+        #self.textBrowser_value.emit("Total Number of Chemicals : " + str(len(chem_list)))
+        print("Total Number of Chemicals : " + str(len(chem_list)))
 
         return chem_json_list, chem_list, name_dict
 
     def process_pubmed_chem_abstract_info(self, keyword):
         chem_json_list = self.crawl_chem_abstract(keyword, retmax=self.retmax)
-        self.textBrowser_value.emit("Crawling Done! Processing Output Files...")
+        #self.textBrowser_value.emit("Crawling Done! Processing Output Files...")
         chem_list = []
         title_list = []
         
@@ -240,12 +251,16 @@ class Crawl(QThread):
 
         for chem_json in chem_json_list:
             for key in chem_json.keys():
-                if key in "title abstract":
+                #added by kiokahn - start
+                #if key in "title abstract":
+                if key in "title journal year volume issue authors citation abstract":
+                    #added by kiokahn - end
                     continue
 
                 if key not in chem_list:
                     chem_list.append(key)
                     title_list.append(chem_json["title"])
+                    
                     #added by kiokahn - start
                     journal_list.append(chem_json["journal"])
                     year_list.append(chem_json["year"])
@@ -254,39 +269,51 @@ class Crawl(QThread):
                     authors_list.append(chem_json["authors"])
                     citation_list.append(chem_json["citation"])
                     #added by kiokahn - end
+
                     abstract_list.append(chem_json["abstract"])
                     name_dict[key] = chem_json[key]["substance_name"]
 
-        self.textBrowser_value.emit("Total Number of Crawled Papers : " + str(len(chem_json_list)))
-        self.textBrowser_value.emit("Total Number of Chemicals : " + str(len(chem_list)))
-
+        #self.textBrowser_value.emit("Total Number of Crawled Papers : " + str(len(chem_json_list)))
+        print("Total Number of Crawled Papers : " + str(len(chem_json_list)))
+        #self.textBrowser_value.emit("Total Number of Chemicals : " + str(len(chem_list)))
+        print("Total Number of Chemicals : " + str(len(chem_list)))
+        
+        '''
         return chem_json_list, chem_list, name_dict, title_list, abstract_list
+        '''
+        #added by kiokahn - start
+        return chem_json_list, chem_list, name_dict, title_list, \
+            journal_list, year_list, volume_list, issue_list, authors_list, citation_list,\
+                abstract_list
+        #added by kiokahn - end
 
     def crawl_chem_abstract(self, keyword, retmax=2000):
         fetch = PubMedFetcher()
-        self.progress_bar_value.emit(self.count)
+        #self.progress_bar_value.emit(self.count)
 
         pmids = fetch.pmids_for_query(keyword, retmax=retmax)
 
-        self.textBrowser_value.emit("Scanning Iteration : " + str(retmax))
-        self.textBrowser_value.emit("Expected Running Time : " + str(retmax * 2) + " seconds.")
+        #self.textBrowser_value.emit("Scanning Iteration : " + str(retmax))
+        #self.textBrowser_value.emit("Expected Running Time : " + str(retmax * 2) + " seconds.")
 
-        self.textBrowser_value.emit("PMID Scan Done!")
+        #self.textBrowser_value.emit("PMID Scan Done!")
 
         json_dicts = []
-        self.textBrowser_value.emit("Crawling Paper Info..")
+        #self.textBrowser_value.emit("Crawling Paper Info..")
 
         for i in range(len(pmids)):
             pmid = pmids[i]
             try:
                 if int(i / len(pmids) * 100) > self.count:
                     self.count = int(i / len(pmids) * 100)
-                    self.progress_bar_value.emit(self.count)
+                    #self.progress_bar_value.emit(self.count)
+                    print(self.count)
 
                 try:
                     article = fetch.article_by_pmid(pmid)
                 except:
-                    self.textBrowser_value.emit("Error reading " + str(pmid))
+                    #self.textBrowser_value.emit("Error reading " + str(pmid))
+                    print("Error reading " + str(pmid))
                     continue
 
                 chemical = article.chemicals
@@ -306,8 +333,8 @@ class Crawl(QThread):
                 elif "\t" in title or "\n" in title:
                     title = title.replace("\t", " ")
                     title = title.replace("\n", " ")
-
-               #added by kiokahn - start
+                    
+                #added by kiokahn - start
                 journal = article.journal
                 if not journal:
                     continue
@@ -336,7 +363,7 @@ class Crawl(QThread):
                     issue = issue.replace("\t", " ")
                     issue = issue.replace("\n", " ")
 
-                authors = article.authors
+                authors = article.authors_str
                 if not authors:
                     continue
                 elif "\t" in authors or "\n" in authors:
@@ -350,8 +377,10 @@ class Crawl(QThread):
                     citation = citation.replace("\t", " ")
                     citation = citation.replace("\n", " ")
                 #added by kiokahn - end
-                
+                    
+
                 chemical["title"] = title
+                
                 #added by kiokahn - start
                 chemical["journal"] = journal
                 chemical["year"] = year
@@ -360,38 +389,20 @@ class Crawl(QThread):
                 chemical["authors"] = authors
                 chemical["citation"] = citation
                 #added by kiokahn - end
+                
                 chemical["abstract"] = abstract
 
                 json_dicts.append(chemical)
             except:
                 continue
 
-        self.textBrowser_value.emit("Progress Done!")
+        #self.textBrowser_value.emit("Progress Done!")
+        print("Progress Done!")
         return json_dicts
 
 
-class WindowClass(Q.QMainWindow, ui_class[0]):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-
-        self.lineEdit.returnPressed.connect(self.button_pressed)
-        self.pushButton.clicked.connect(self.button_pressed)
-
-    def button_pressed(self):
-        self.keyword = self.lineEdit.text()
-        self.retmax = self.spinBox.value()
-        self.textBrowser.clear()
-        self.textBrowser.append("Process Start!!")
-        self.textBrowser.append("Keyword : " + self.keyword)
-        self.th = Crawl(self.keyword, self.retmax, self.checkBox.isChecked())
-        self.th.progress_bar_value.connect(self.progressBar.setValue)
-        self.th.textBrowser_value.connect(self.textBrowser.append)
-        self.th.start()
-
-
 if __name__ == "__main__":
-    app = Q.QApplication(sys.argv)
-    myWindow = WindowClass()
-    myWindow.show()
-    app.exec_()
+    retmax = 3000
+    crawl = PubMedCrawl('Germ cell', retmax, True)
+    crawl.run()
+    
